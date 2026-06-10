@@ -1,7 +1,7 @@
 // THE authorization pattern (§5). Every server action / route handler starts with
 // requireOrgRole (session auth) or resolveApiKey (bearer auth). No inline role checks.
 
-import { createHash } from "node:crypto";
+import { createHash } from "crypto";
 import type { Membership, Role } from "@prisma/client";
 import { db } from "./client";
 import { AuthzError } from "./errors";
