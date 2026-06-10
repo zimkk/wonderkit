@@ -2,7 +2,7 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: ai-kit-postgres
+    container_name: wonderkit-postgres
     environment:
       POSTGRES_USER: kit
       POSTGRES_PASSWORD: kit

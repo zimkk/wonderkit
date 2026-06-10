@@ -1,4 +1,4 @@
-# AI Kit — Codebase guide for coding agents
+# WonderKit — Codebase guide for coding agents
 
 This is an agent-native, multi-tenant AI SaaS starter kit built with Next.js 15 (App Router),
 Prisma + PostgreSQL, Inngest, and a provider-agnostic AI layer. The repo is a Turborepo monorepo.

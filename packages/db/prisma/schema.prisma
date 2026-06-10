@@ -1,4 +1,4 @@
-// Authoritative database schema for the AI Kit (v1 contract, technical doc §4).
+// Authoritative database schema for WonderKit (v1 contract, technical doc §4).
 // Field-level comments are mandatory — coding agents read them.
 
 generator client {

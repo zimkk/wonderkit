@@ -18,7 +18,7 @@ export const env = createEnv({
 
     // Email — optional in dev; console transport logs magic links when unset.
     RESEND_API_KEY: z.string().optional(),
-    EMAIL_FROM: z.string().default("AI Kit <noreply@example.com>"),
+    EMAIL_FROM: z.string().default("WonderKit <noreply@example.com>"),
   },
   client: {},
   runtimeEnv: {
