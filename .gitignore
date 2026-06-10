@@ -1,0 +1,24 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+
+# build outputs
+dist/
+.turbo/
+
+# env — secrets never committed
+.env
+.env.*
+!.env.example
+
+# prisma
+packages/db/generated/
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+*.tsbuildinfo

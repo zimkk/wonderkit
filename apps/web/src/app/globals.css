@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* Design tokens (Tailwind v4 @theme). Extend here, never with arbitrary hex in components. */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-brand-50: #eef6ff;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+}
+
+/* Pull in classes used by transpiled workspace packages (@kit/ui). */
+@source "../../../../packages/ui/src";
+
+body {
+  @apply bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+}

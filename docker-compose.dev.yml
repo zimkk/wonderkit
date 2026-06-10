@@ -1,0 +1,21 @@
+# Local development services only. Production compose lives in deploy/vps/.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ai-kit-postgres
+    environment:
+      POSTGRES_USER: kit
+      POSTGRES_PASSWORD: kit
+      POSTGRES_DB: kit
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kit"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

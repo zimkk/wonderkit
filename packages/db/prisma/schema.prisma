@@ -1,0 +1,258 @@
+// Authoritative database schema for the AI Kit (v1 contract, technical doc §4).
+// Field-level comments are mandatory — coding agents read them.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ---------- Identity & Orgs ----------
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime     @default(now())
+  memberships   Membership[]
+  accounts      Account[] // Auth.js
+  sessions      Session[] // Auth.js
+  isSuperAdmin  Boolean      @default(false) // kit-owner internal admin (/admin access)
+}
+
+model Organization {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  createdAt    DateTime      @default(now())
+  memberships  Membership[]
+  subscription Subscription?
+  usageEvents  UsageEvent[]
+  agentRuns    AgentRun[]
+  apiKeys      ApiKey[]
+  invitations  Invitation[]
+}
+
+model Membership {
+  id     String       @id @default(cuid())
+  userId String
+  orgId  String
+  role   Role         @default(MEMBER) // OWNER | ADMIN | MEMBER
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Invitation {
+  id        String       @id @default(cuid())
+  orgId     String
+  email     String
+  role      Role         @default(MEMBER)
+  token     String       @unique // signed token emailed to invitee; single use
+  expiresAt DateTime // 7-day expiry from creation
+  acceptedAt DateTime?
+  createdAt DateTime     @default(now())
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, email])
+}
+
+model ApiKey {
+  id         String       @id @default(cuid())
+  orgId      String
+  name       String
+  hashedKey  String       @unique // store SHA-256 only; show plaintext once
+  lastUsedAt DateTime?
+  createdAt  DateTime     @default(now())
+  revokedAt  DateTime?
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Billing ----------
+
+model Subscription {
+  id                   String       @id @default(cuid())
+  orgId                String       @unique
+  stripeCustomerId     String       @unique
+  stripeSubscriptionId String?      @unique
+  plan                 Plan         @default(FREE) // FREE | STARTER | PRO
+  status               SubStatus    @default(ACTIVE) // mirrors Stripe status enum subset
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean      @default(false)
+  org                  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+}
+
+enum SubStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+// ---------- AI usage & cost ----------
+
+model UsageEvent {
+  id           String       @id @default(cuid())
+  orgId        String
+  userId       String?
+  feature      String // e.g. "chat", "summarizer", "agent_run" — registered in packages/ai/src/features.ts
+  provider     String // "anthropic" | "openai" | ...
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  costUsd      Decimal      @db.Decimal(12, 6) // computed at write time from pricing table
+  metadata     Json?
+  createdAt    DateTime     @default(now())
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+  @@index([orgId, feature, createdAt])
+}
+
+// Nightly cron aggregates; admin charts & Stripe metering read this, never raw UsageEvent.
+model UsageDailyRollup {
+  id      String   @id @default(cuid())
+  orgId   String
+  date    DateTime @db.Date
+  feature String
+  tokens  Int
+  costUsd Decimal  @db.Decimal(12, 6)
+
+  @@unique([orgId, date, feature])
+}
+
+// ---------- Multi-agent (Pro) ----------
+
+model AgentRun {
+  id         String       @id @default(cuid())
+  orgId      String
+  userId     String?
+  agent      String // agent slug from registry, e.g. "orchestrator"
+  status     RunStatus    @default(QUEUED) // QUEUED RUNNING NEEDS_APPROVAL SUCCEEDED FAILED CANCELED
+  input      Json
+  output     Json?
+  error      String?
+  costUsd    Decimal      @default(0) @db.Decimal(12, 6)
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime     @default(now())
+  steps      AgentStep[]
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+}
+
+enum RunStatus {
+  QUEUED
+  RUNNING
+  NEEDS_APPROVAL
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+model AgentStep {
+  id         String   @id @default(cuid())
+  runId      String
+  index      Int
+  type       StepType // LLM_CALL | TOOL_CALL | SUBAGENT | APPROVAL | NOTE
+  name       String // tool name / sub-agent slug / model
+  input      Json?
+  output     Json?
+  tokens     Int      @default(0)
+  costUsd    Decimal  @default(0) @db.Decimal(12, 6)
+  durationMs Int?
+  createdAt  DateTime @default(now())
+  run        AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, index])
+}
+
+enum StepType {
+  LLM_CALL
+  TOOL_CALL
+  SUBAGENT
+  APPROVAL
+  NOTE
+}
+
+// Semantic memory (pgvector). Written via remember(), queried via recall().
+model MemoryItem {
+  id        String                       @id @default(cuid())
+  orgId     String
+  agent     String?
+  kind      String // "fact" | "preference" | "doc_chunk" | custom
+  content   String
+  embedding Unsupported("vector(1536)")?
+  metadata  Json?
+  createdAt DateTime                     @default(now())
+
+  @@index([orgId, kind])
+}
+
+// ---------- Rate limiting (Postgres-based, v1; Redis upgrade path documented) ----------
+
+model RateLimitBucket {
+  key       String   @id // e.g. "org:abc:chat:minute:2026-06-10T16:54"
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+// ---------- Auth.js adapter models (unmodified from Prisma adapter docs) ----------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
