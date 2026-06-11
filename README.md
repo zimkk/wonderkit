@@ -166,18 +166,6 @@ Every convention is a checkable rule:
 
 ---
 
-## Plans & billing
-
-| Plan | Tokens/month | Agents | Members | Price |
-|---|---|---|---|---|
-| Free | 100K | — | 1 | $0 |
-| Starter | 2M | — | 5 | $29/mo |
-| Pro | 10M | 10 | 25 | $99/mo |
-
-Plans are data, not code — defined in [`packages/db/src/plans.ts`](packages/db/src/plans.ts). Changing a quota or adding a feature flag is a one-line edit.
-
----
-
 ## Environment variables
 
 Only two variables are required to run locally:
