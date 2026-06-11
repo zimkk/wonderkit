@@ -122,6 +122,15 @@ Every convention is a checkable rule:
 - One user → many orgs, one active at a time (cookie-based switcher)
 - Roles: `OWNER > ADMIN > MEMBER`
 - `requireOrgRole(session, orgId, role)` is the single authz primitive — no inline checks anywhere
+- Invitation flow: email-gated invite tokens, role assignment, plan member-limit enforcement
+- Team management UI: member list + remove, pending invitations + cancel, invite form
+- `/invite/[token]` accept page: validates token expiry and email match before creating membership
+
+### API key management
+- `createApiKey()` generates `sk_live_*`, stores only SHA-256 hash, returns plaintext once
+- "Show once" copy widget in the UI — plaintext never persists on the server
+- `revokeApiKey()` for immediate invalidation
+- `resolveApiKey()` in `packages/db` for authenticating API requests
 
 ### Billing (Stripe)
 - Free / Starter ($29) / Pro ($99) plans defined as data in `packages/db/src/plans.ts`
@@ -151,6 +160,8 @@ Every convention is a checkable rule:
 - Nightly usage rollup cron (`UsageEvent` → `UsageDailyRollup`)
 - `onPaymentFailed` → sends `PaymentFailedEmail`
 - `onSubscriptionProvisioned` → sends `WelcomeEmail`
+- `onUsageAlert` → sends `UsageAlertEmail` to org owner when usage ≥ 80% of monthly quota
+- Nightly rollup also reports metered overage tokens to Stripe (`subscriptionItems.createUsageRecord`)
 - Dev works without `INNGEST_EVENT_KEY` (uses `"local"` key)
 
 ---
@@ -198,10 +209,10 @@ Everything else is optional and feature-detected at startup. See [`.env.example`
 - [x] Phase 4 — Agent context layer, AGENTS.md, 9 verified prompts, skills
 - [x] Phase 5 — Multi-agent runtime, pgvector memory, eval harness
 - [x] Phase 6 — Admin panel, deploy guides (Vercel + VPS), GitHub Actions CI
-- [ ] Invitation flow + team management UI
-- [ ] API key management UI
-- [ ] Usage alerts (email at 80% quota)
-- [ ] Stripe metered billing for token overage
+- [x] Invitation flow + team management UI (`/app/settings/team`, `/invite/[token]`)
+- [x] API key management UI (`/app/settings/api-keys`, SHA-256 hash storage)
+- [x] Usage alerts (email at 80% quota via Inngest + UsageAlertEmail)
+- [x] Stripe metered billing for token overage (nightly rollup reports to Stripe)
 - [ ] Demo video + hosted demo
 
 ---
