@@ -8,7 +8,8 @@ const links = [
   { href: "/app", label: "Overview", exact: true },
   { href: "/app/chat", label: "Chat" },
   { href: "/app/agents", label: "Agents" },
-  { href: "/app/settings", label: "Settings" },
+  { href: "/app/settings/billing", label: "Billing" },
+  { href: "/app/settings", label: "Settings", exact: true },
 ];
 
 const adminLinks = [{ href: "/admin", label: "Admin panel" }];

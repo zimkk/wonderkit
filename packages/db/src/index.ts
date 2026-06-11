@@ -13,6 +13,7 @@ export {
   ProviderError,
   toResponse,
 } from "./errors";
+export { gate, assertTokenBudget } from "./gate";
 export type {
   User,
   Organization,
