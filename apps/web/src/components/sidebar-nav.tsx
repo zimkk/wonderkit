@@ -9,6 +9,8 @@ const links = [
   { href: "/app/chat", label: "Chat" },
   { href: "/app/agents", label: "Agents" },
   { href: "/app/settings/billing", label: "Billing" },
+  { href: "/app/settings/team", label: "Team" },
+  { href: "/app/settings/api-keys", label: "API Keys" },
   { href: "/app/settings", label: "Settings", exact: true },
 ];
 
