@@ -215,5 +215,3 @@ Issues and PRs welcome. Read `AGENTS.md` before contributing — it's the same g
 ## License
 
 MIT © [Hassan Nazir](https://github.com/zimkk) — see [LICENSE](LICENSE).
-
-Built with AI pair programming assistance from Claude Code (Anthropic). See [PROVENANCE.md](PROVENANCE.md).
